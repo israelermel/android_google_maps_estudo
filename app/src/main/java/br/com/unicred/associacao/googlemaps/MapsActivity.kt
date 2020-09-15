@@ -19,7 +19,8 @@ import com.google.android.gms.maps.GoogleMap.*
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.maps.android.SphericalUtil
-import com.google.maps.android.ktx.addMarker
+import com.google.maps.android.clustering.Cluster
+import com.google.maps.android.clustering.ClusterManager
 import java.util.*
 
 private val REQUIRED_PERMISSIONS_LOCATION = arrayOf(
@@ -27,11 +28,17 @@ private val REQUIRED_PERMISSIONS_LOCATION = arrayOf(
 )
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback,
-    OnMyLocationButtonClickListener, OnMyLocationClickListener, OnMapLongClickListener {
+    OnMyLocationButtonClickListener, OnMyLocationClickListener, OnMapLongClickListener,
+    ClusterManager.OnClusterClickListener<MarkerClusterItem>,
+    ClusterManager.OnClusterInfoWindowClickListener<MarkerClusterItem>,
+    ClusterManager.OnClusterItemClickListener<MarkerClusterItem>,
+    ClusterManager.OnClusterItemInfoWindowClickListener<MarkerClusterItem> {
 
     var mMap: GoogleMap? = null
     private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
     private var lastKnownLocation: Location? = null
+
+    private lateinit var mClusterManager: ClusterManager<MarkerClusterItem>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,8 +72,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,
 
             if (permissionDeniedList.size == 0) {
                 mMap?.apply {
-                    enableMuyLocationButton()
-                    teste()
+                    enableMyLocationButton()
+                    configureUiSettings()
                 }
             } else {
                 redirectToPreferencesPermissions()
@@ -82,10 +89,28 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,
         startActivity(intent)
     }
 
+    private fun getListMarkers(): List<MarkerClusterItem> {
+        var list = mutableListOf<MarkerClusterItem>()
+        list.add(MarkerClusterItem(LatLng( 51.5145160, -0.1270060), "teste 1"))
+        list.add(MarkerClusterItem(LatLng( 51.5064490, -0.1244260), "teste 1"))
+        list.add(MarkerClusterItem(LatLng(51.5097080, -0.1200450), "teste 1"))
+        list.add(MarkerClusterItem(LatLng( 51.5090680, -0.1421420), "teste 1"))
+        return list
+    }
+
+    private fun addClusterItems() {
+        for (markerOptions in getListMarkers()) {
+            val clusterItem =
+                MarkerClusterItem(markerOptions.position, markerOptions.title ?: "")
+
+            mClusterManager.addItem(clusterItem)
+        }
+    }
+
     @SuppressLint("MissingPermission")
-    private fun enableMuyLocationButton() {
+    private fun enableMyLocationButton() {
         mMap?.apply {
-            isMyLocationEnabled = true
+            isMyLocationEnabled = false
             getDeviceLocation()
         }
     }
@@ -94,29 +119,16 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,
 
         googleMap?.apply {
             mMap = this
-            googleMap.setOnMyLocationButtonClickListener(this@MapsActivity)
-            googleMap.setOnMyLocationClickListener(this@MapsActivity)
+//            googleMap.setOnMyLocationButtonClickListener(this@MapsActivity)
+//            googleMap.setOnMyLocationClickListener(this@MapsActivity)
 
             requestPermissionLocation.launch(REQUIRED_PERMISSIONS_LOCATION)
         }
     }
 
-    fun teste() {
+    fun configureUiSettings() {
         mMap?.apply {
-//            val cooperativa = LatLng(-29.690641, -51.135547)
-//            val usuario = LatLng(-29.684117, -51.126942)
-//
-//            addMarker(
-//                getMarkerOptions(cooperativa, "Cooperativa")
-//            )
-
-//            addMarker(
-//                getMarkerOptions(usuario, "Seu local agora")
-//            )
-
-//            moveCamera(targetScreenWhenLoad(cooperativa))
-
-            uiSettings.isMyLocationButtonEnabled = true
+            uiSettings.isMyLocationButtonEnabled = false
             uiSettings.isTiltGesturesEnabled = false
             uiSettings.isMapToolbarEnabled = false
         }
@@ -141,24 +153,48 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,
                     if (lastKnownLocation != null) {
 
                         val latLng = convertLocationToLatLng(task.result)
-                        val unicred = LatLng(-29.684117, -51.126942)
+                        val unicred = LatLng(51.503186, -0.126446)
+
+//                        mMap?.addPolyline { clickable(true)
+//                            .add(
+//                                latLng, unicred
+//                            )
+//                        }
 
                         mMap?.apply {
                             moveCamera(
                                 CameraUpdateFactory.newLatLngZoom(
-                                    latLng, DEFAULT_ZOOM.toFloat()
+                                    unicred, DEFAULT_ZOOM.toFloat()
                                 )
                             )
 
-                            addMarker {
-                                position(latLng)
-                                title("Meu Local")
+                            mClusterManager = ClusterManager(this@MapsActivity, this)
+
+                            setOnCameraIdleListener(mClusterManager)
+                            mClusterManager.markerCollection.setOnInfoWindowClickListener {
+                                Toast.makeText(this@MapsActivity, "teste", Toast.LENGTH_LONG).show()
                             }
 
-                            addMarker {
-                                position(unicred)
-                                title("Cooperativa Novo Hamburgo")
+                            mClusterManager.markerCollection.setOnMarkerClickListener {
+                                Toast.makeText(this@MapsActivity, "${it.id} - ${it.position.latitude} - ${it.position.longitude}", Toast.LENGTH_LONG).show()
+                                true
                             }
+
+                            addClusterItems()
+
+//                            setOnCameraIdleListener(mClusterManager)
+//                            setOnMarkerClickListener(mClusterManager)
+//
+//
+//                            addMarker {
+//                                position(latLng)
+//                                title("Seu endereço")
+//                            }
+////
+//                            addMarker {
+//                                position(unicred)
+//                                title("Cooperativa Novo Hamburgo")
+//                            }
 
                             Log.d("israel", distanciaEmMetros(latLng, unicred))
                         }
@@ -183,7 +219,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,
     private fun geocoder() {
         val geocoder = Geocoder(this, Locale.getDefault())
         val teste = geocoder.getFromLocationName("93336150", 10)
-        teste.forEach {address ->
+        teste.forEach { address ->
 
             Log.d("israel-latitude", address.latitude.toString())
             Log.d("israel-longitude", address.longitude.toString())
@@ -224,12 +260,12 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,
     }
 
     override fun onMapLongClick(p0: LatLng?) {
-        TODO("Not yet implemented")
+        Toast.makeText(this, "teste", Toast.LENGTH_LONG).show()
     }
 
     companion object {
         private val TAG = MapsActivity::class.java.simpleName
-        private const val DEFAULT_ZOOM = 15
+        private const val DEFAULT_ZOOM = 13
         private const val PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 1
 
         // Keys for storing activity state.
@@ -253,6 +289,23 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,
 
     private fun convertLocationToLatLng(location: Location?): LatLng {
         return LatLng(location?.latitude!!, location.longitude)
+    }
+
+    override fun onClusterClick(cluster: Cluster<MarkerClusterItem>?): Boolean {
+
+        return true
+    }
+
+    override fun onClusterInfoWindowClick(cluster: Cluster<MarkerClusterItem>?) {
+        Log.d("israel", "onClusterInfoWindowClick")
+    }
+
+    override fun onClusterItemClick(item: MarkerClusterItem?): Boolean {
+        return false
+    }
+
+    override fun onClusterItemInfoWindowClick(item: MarkerClusterItem?) {
+        Log.d("israel", "onClusterItemInfoWindowClick")
     }
 
 }
