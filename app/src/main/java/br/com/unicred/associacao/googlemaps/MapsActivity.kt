@@ -19,7 +19,6 @@ import com.google.android.gms.maps.GoogleMap.*
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.maps.android.SphericalUtil
-import com.google.maps.android.clustering.Cluster
 import com.google.maps.android.clustering.ClusterManager
 import java.util.*
 
@@ -28,11 +27,7 @@ private val REQUIRED_PERMISSIONS_LOCATION = arrayOf(
 )
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback,
-    OnMyLocationButtonClickListener, OnMyLocationClickListener, OnMapLongClickListener,
-    ClusterManager.OnClusterClickListener<MarkerClusterItem>,
-    ClusterManager.OnClusterInfoWindowClickListener<MarkerClusterItem>,
-    ClusterManager.OnClusterItemClickListener<MarkerClusterItem>,
-    ClusterManager.OnClusterItemInfoWindowClickListener<MarkerClusterItem> {
+    OnMyLocationButtonClickListener, OnMyLocationClickListener, OnMapLongClickListener {
 
     var mMap: GoogleMap? = null
     private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
@@ -74,6 +69,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,
                 mMap?.apply {
                     enableMyLocationButton()
                     configureUiSettings()
+
+
                 }
             } else {
                 redirectToPreferencesPermissions()
@@ -91,10 +88,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,
 
     private fun getListMarkers(): List<MarkerClusterItem> {
         var list = mutableListOf<MarkerClusterItem>()
-        list.add(MarkerClusterItem(LatLng( 51.5145160, -0.1270060), "teste 1"))
-        list.add(MarkerClusterItem(LatLng( 51.5064490, -0.1244260), "teste 1"))
+        list.add(MarkerClusterItem(LatLng(51.5145160, -0.1270060), "teste 1"))
+        list.add(MarkerClusterItem(LatLng(51.5064490, -0.1244260), "teste 1"))
         list.add(MarkerClusterItem(LatLng(51.5097080, -0.1200450), "teste 1"))
-        list.add(MarkerClusterItem(LatLng( 51.5090680, -0.1421420), "teste 1"))
+        list.add(MarkerClusterItem(LatLng(51.5090680, -0.1421420), "teste 1"))
         return list
     }
 
@@ -170,13 +167,27 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,
 
                             mClusterManager = ClusterManager(this@MapsActivity, this)
 
+//                            private void setUpClusterManager(){
+//                                // cluster
+//                                clusterManager = new ClusterManager<MarkerClusterItem>(getActivity(), this.googleMap);
+//                                clusterManager.setAnimation(false);
+//                                MarkerClusterRenderer clusterRenderer = new MarkerClusterRenderer(getActivity(), googleMap, clusterManager);
+//                                clusterManager.setRenderer(clusterRenderer);
+//                                // marker clic
+//                                clusterManager.setOnClusterClickListener(this);
+//                            }
+
                             setOnCameraIdleListener(mClusterManager)
                             mClusterManager.markerCollection.setOnInfoWindowClickListener {
                                 Toast.makeText(this@MapsActivity, "teste", Toast.LENGTH_LONG).show()
                             }
 
                             mClusterManager.markerCollection.setOnMarkerClickListener {
-                                Toast.makeText(this@MapsActivity, "${it.id} - ${it.position.latitude} - ${it.position.longitude}", Toast.LENGTH_LONG).show()
+                                Toast.makeText(
+                                    this@MapsActivity,
+                                    "${it.id} - ${it.position.latitude} - ${it.position.longitude}",
+                                    Toast.LENGTH_LONG
+                                ).show()
                                 true
                             }
 
@@ -290,22 +301,22 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,
     private fun convertLocationToLatLng(location: Location?): LatLng {
         return LatLng(location?.latitude!!, location.longitude)
     }
-
-    override fun onClusterClick(cluster: Cluster<MarkerClusterItem>?): Boolean {
-
-        return true
-    }
-
-    override fun onClusterInfoWindowClick(cluster: Cluster<MarkerClusterItem>?) {
-        Log.d("israel", "onClusterInfoWindowClick")
-    }
-
-    override fun onClusterItemClick(item: MarkerClusterItem?): Boolean {
-        return false
-    }
-
-    override fun onClusterItemInfoWindowClick(item: MarkerClusterItem?) {
-        Log.d("israel", "onClusterItemInfoWindowClick")
-    }
+//
+//    override fun onClusterClick(cluster: Cluster<MarkerClusterItem>?): Boolean {
+//
+//        return true
+//    }
+//
+//    override fun onClusterInfoWindowClick(cluster: Cluster<MarkerClusterItem>?) {
+//        Log.d("israel", "onClusterInfoWindowClick")
+//    }
+//
+//    override fun onClusterItemClick(item: MarkerClusterItem?): Boolean {
+//        return false
+//    }
+//
+//    override fun onClusterItemInfoWindowClick(item: MarkerClusterItem?) {
+//        Log.d("israel", "onClusterItemInfoWindowClick")
+//    }
 
 }
