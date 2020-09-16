@@ -17,10 +17,13 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.*
 import com.google.android.gms.maps.GoogleMap.*
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.LatLngBounds
+import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.maps.android.SphericalUtil
 import com.google.maps.android.clustering.ClusterManager
 import java.util.*
+
 
 private val REQUIRED_PERMISSIONS_LOCATION = arrayOf(
     Manifest.permission.ACCESS_FINE_LOCATION
@@ -32,8 +35,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,
     var mMap: GoogleMap? = null
     private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
     private var lastKnownLocation: Location? = null
-
     private lateinit var mClusterManager: ClusterManager<MarkerClusterItem>
+
+    private lateinit var builder: LatLngBounds.Builder
+    private lateinit var cu: CameraUpdate
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,8 +51,32 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,
 
         mapFragment.getMapAsync(this)
 
-
     }
+
+    private fun configBoundLatLng() {
+        mMap?.apply {
+            clear()
+
+            val teste = getListMarkers2()
+
+            builder = LatLngBounds.Builder()
+
+            teste.forEach { marker: Marker ->
+                builder.include(marker.position)
+            }
+
+            val padding = 150
+
+            val bounds = builder.build()
+
+            cu = CameraUpdateFactory.newLatLngBounds(bounds, padding)
+
+            setOnMapLoadedCallback {
+                animateCamera(cu)
+            }
+        }
+    }
+
 
     private fun getPermissionsDeniedList(
         permissions: MutableMap<String, Boolean>
@@ -67,10 +96,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,
 
             if (permissionDeniedList.size == 0) {
                 mMap?.apply {
-                    enableMyLocationButton()
-                    configureUiSettings()
+//                    enableMyLocationButton()
+//                    configureUiSettings()
 
-
+                    configBoundLatLng()
                 }
             } else {
                 redirectToPreferencesPermissions()
@@ -92,6 +121,20 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,
         list.add(MarkerClusterItem(LatLng(51.5064490, -0.1244260), "teste 1"))
         list.add(MarkerClusterItem(LatLng(51.5097080, -0.1200450), "teste 1"))
         list.add(MarkerClusterItem(LatLng(51.5090680, -0.1421420), "teste 1"))
+        return list
+    }
+
+    private fun getListMarkers2(): List<Marker> {
+        val list = mutableListOf<Marker>()
+
+        val item1 = mMap?.addMarker(getMarkerOptions(LatLng(51.5145160, -0.1270060), "title 1"))
+        val item2 = mMap?.addMarker(getMarkerOptions(LatLng(51.5064490, -0.1244260), "title 2"))
+        val item3 = mMap?.addMarker(getMarkerOptions(LatLng(51.6374890, -0.2354860), "title 3"))
+
+        item1?.let { list.add(it) }
+        item2?.let { list.add(it) }
+        item3?.let { list.add(it) }
+
         return list
     }
 
@@ -165,8 +208,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,
                                 )
                             )
 
-                            mClusterManager = ClusterManager(this@MapsActivity, this)
-
 //                            private void setUpClusterManager(){
 //                                // cluster
 //                                clusterManager = new ClusterManager<MarkerClusterItem>(getActivity(), this.googleMap);
@@ -177,21 +218,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,
 //                                clusterManager.setOnClusterClickListener(this);
 //                            }
 
-                            setOnCameraIdleListener(mClusterManager)
-                            mClusterManager.markerCollection.setOnInfoWindowClickListener {
-                                Toast.makeText(this@MapsActivity, "teste", Toast.LENGTH_LONG).show()
-                            }
+//                            configClusterManager()
 
-                            mClusterManager.markerCollection.setOnMarkerClickListener {
-                                Toast.makeText(
-                                    this@MapsActivity,
-                                    "${it.id} - ${it.position.latitude} - ${it.position.longitude}",
-                                    Toast.LENGTH_LONG
-                                ).show()
-                                true
-                            }
-
-                            addClusterItems()
+//                            addClusterItems()
 
 //                            setOnCameraIdleListener(mClusterManager)
 //                            setOnMarkerClickListener(mClusterManager)
@@ -207,10 +236,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,
 //                                title("Cooperativa Novo Hamburgo")
 //                            }
 
-                            Log.d("israel", distanciaEmMetros(latLng, unicred))
+//                            Log.d("israel", distanciaEmMetros(latLng, unicred))
                         }
 
-                        geocoder()
+//                        geocoder()
                     }
 
 
@@ -224,6 +253,23 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback,
             }
         } catch (e: SecurityException) {
             Log.e("Exception: %s", e.message, e)
+        }
+    }
+
+    private fun GoogleMap.configClusterManager() {
+        mClusterManager = ClusterManager(this@MapsActivity, this)
+        setOnCameraIdleListener(mClusterManager)
+        mClusterManager.markerCollection.setOnInfoWindowClickListener {
+            Toast.makeText(this@MapsActivity, "teste", Toast.LENGTH_LONG).show()
+        }
+
+        mClusterManager.markerCollection.setOnMarkerClickListener {
+            Toast.makeText(
+                this@MapsActivity,
+                "${it.id} - ${it.position.latitude} - ${it.position.longitude}",
+                Toast.LENGTH_LONG
+            ).show()
+            true
         }
     }
 
